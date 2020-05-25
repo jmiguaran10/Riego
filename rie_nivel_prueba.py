@@ -2,6 +2,7 @@ import datetime
 import requests
 import time
 import RPi.GPIO as GPIO
+import time
 from datetime import date
 import datetime
 from time import sleep
@@ -11,10 +12,8 @@ from time import sleep
 now = datetime.datetime.now()
 last = datetime.datetime.now()
 
-in1 = 8 # Salida al relé
+in1 = 8 # Salida al rele
 in2 = 10 # Entrada del sensor de nivel
-
-URL = 'http://192.168.0.103:8000/riego/'
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(in1, GPIO.OUT)
@@ -23,7 +22,7 @@ GPIO.output(in1, True)
 
 global vectorRiego 
 global vectorPendientes 
-vectorRiego = []
+vectorRiego = [[14.44, 1], [14.47, 1]]
 vectorPendientes = []
 
 def guardarVector(hora, tiempo):
@@ -103,41 +102,6 @@ try:
 		dia = datetime.datetime.today()
 		print("-"*60)
 		print(now)
-		delta = now - last
-		#on_press()
-		if delta.seconds >= 10.0:
-			print('Updating...')
-			myobj = {'fecha': str(dia.day)+'.'+str(dia.month)}
-			print(myobj)
-			try:
-				r = requests.post(URL+'allEsperaDia', data = myobj)
-				no_conex = 0
-			except:
-				no_conex = 1
-			
-			if no_conex == 0 and r.status_code == 200:
-				if(len(r.json()['riego'])==0):
-					print('No hay pruebas pendientes')
-					last=now
-				else:
-					vectorRiego = []
-					print('Begin')
-					print(len(r.json()['riego']))
-					for x in r.json()['riego']:
-						print('Hora: ' + str(x['hora']))
-						print('Tiempo: ' + str(x['tiempo']))
-						#num = x['dir'];
-						print('Preparando Prueba...')
-						time.sleep(1)
-						print('Prueba en Proceso...')
-						guardarVector(x['hora'], x['tiempo'])
-						sendChange(x['id'])
-						print('Out For')
-						last = now
-			else:
-				print("Request Invalid")
-				last = now
-				delta = []
 		state_tanque = estadoTanque()
 		if state_tanque == 'Hay agua':
 			print(state_tanque)
@@ -146,6 +110,7 @@ try:
 		else:
 			print(state_tanque)
 			guardar_pendiente()
+			
 			
 except KeyboardInterrupt, ValueError:
 	GPIO.cleanup()
