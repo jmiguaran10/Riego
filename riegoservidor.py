@@ -14,7 +14,7 @@ last = datetime.datetime.now()
 in1 = 8 # Salida al relé
 in2 = 10 # Entrada del sensor de nivel
 
-URL = 'http://192.168.0.103:8000/riego/'
+URL = 'http://riego-env.eba-24rjanyu.us-east-1.elasticbeanstalk.com/riego/'
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(in1, GPIO.OUT)
