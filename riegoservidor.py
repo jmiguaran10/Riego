@@ -11,7 +11,7 @@ from time import sleep
 now = datetime.datetime.now()
 last = datetime.datetime.now()
 
-in1 = 8 # Salida al relé
+in1 = 8 # Salida al rele
 in2 = 10 # Entrada del sensor de nivel
 
 URL = 'http://riego-env.eba-24rjanyu.us-east-1.elasticbeanstalk.com/riego/'
@@ -37,15 +37,20 @@ def sendChange(param):
 	sleep(1)
 	
 def guardar_pendiente():
+	flag = False
 	for i in range(len(vectorRiego)):
+		if flag:
+			i=i-1
 		vectorActual = vectorRiego[i]
 		horaMinActual = vectorActual[0]
 		horaActual = int(str(horaMinActual).split('.')[0])
 		minutoActual = int(str(horaMinActual).split('.')[1])
 		tiempoActual = int(vectorActual[1])
-			
+		flag = False
 		if now.hour ==  horaActual and now.minute == minutoActual:
 			vectorPendientes.append([horaActual, minutoActual, tiempoActual])
+			vectorRiego.pop(i)
+			flag = True
 			print("Guardando riego pendiente de las " + str(horaActual) + ":" + str(minutoActual))
 			time.sleep(60)
 			
@@ -53,15 +58,23 @@ def regar_pendiente():
 	global vectorPendientes
 	print(vectorPendientes)
 	print("Regando pendientes")
+	sum_pend = 0
 	if len(vectorPendientes) > 0:
-		for i in range (len(vectorPendientes)):
-			tiempoActual = vectorPendientes[i][2]
-			GPIO.output(in1, False)
-			print("Riego pendiente " + str(i) + " On")
-			time.sleep(60*tiempoActual)
-			GPIO.output(in1, True)
-			print("Riego pendiente Off")
-		vectorPendientes = []
+		for i in range (len(vectorPendientes)):	
+			if estadoTanque() == "Hay agua":
+				tiempoActual = vectorPendientes[i][2]
+				GPIO.output(in1, False)
+				print("Riego pendiente " + str(i) + " On")
+				time.sleep(60*tiempoActual)
+				GPIO.output(in1, True)
+				print("Riego pendiente Off")
+				sum_pend = sum_pend + 1
+		for i in range(sum_pend):
+			if i==0:
+				vectorPendientes.pop(i)
+			else:
+				i=i-1
+				vectorPendientes.pop(i)
 	else:
 		print("No hay pendientes")
 	
@@ -71,7 +84,7 @@ def estadoTanque():
 	print("Sensando nivel de agua")
 	state = 'No hay agua'
 	cont = 0
-	for i in range (20):
+	for i in range (30):
 		cont = cont + (GPIO.input(10))
 		sleep(0.5)
 		
@@ -83,14 +96,21 @@ def estadoTanque():
 	
 def regar():	
 	print("Riego normal")
+	flag = False
+
 	for i in range(len(vectorRiego)):
+		if flag:
+			i=i-1
 		vectorActual = vectorRiego[i]
 		horaMinActual = vectorActual[0]
 		horaActual = int(str(horaMinActual).split('.')[0])
 		minutoActual = int(str(horaMinActual).split('.')[1])
 		tiempoActual = int(vectorActual[1])
+		flag = False
 		print(vectorActual)
 		if now.hour ==  horaActual and now.minute == minutoActual:
+			flag = True
+			vectorRiego.pop(i)
 			GPIO.output(in1, False)
 			print("Riego On")
 			time.sleep(60*tiempoActual)
@@ -120,7 +140,7 @@ try:
 					print('No hay pruebas pendientes')
 					last=now
 				else:
-					vectorRiego = []
+					#vectorRiego = []
 					print('Begin')
 					print(len(r.json()['riego']))
 					for x in r.json()['riego']:
@@ -147,7 +167,8 @@ try:
 			print(state_tanque)
 			guardar_pendiente()
 			
-except KeyboardInterrupt, ValueError:
+except (KeyboardInterrupt, ValueError, IndexError):
+	print("Limpiando GPIO")
 	GPIO.cleanup()
 	
 		
